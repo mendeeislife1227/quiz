@@ -1,6 +1,6 @@
 class QuestionsModel{
   int _answer;
-  List<String> _options;
+  List<dynamic> _options;
   String _text;
 
   QuestionsModel.fromJson(Map<String, dynamic> parsedJson){
@@ -10,6 +10,6 @@ class QuestionsModel{
   }
 
   int get answer => _answer;
-  List<String> get options => _options;
+  List<dynamic> get options => _options;
   String get text => _text;
 }

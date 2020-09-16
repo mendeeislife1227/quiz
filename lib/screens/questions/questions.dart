@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_screenutil/screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:simpleshop/models/question.dart';
 import 'package:simpleshop/models/server.dart';
 
 class Questions extends StatefulWidget {
-
   @override
   _QuestionsState createState() => _QuestionsState();
 }
 
 class _QuestionsState extends State<Questions> {
   List<QuestionsModel> questions = [];
-  int currentTestNumber = 1, testNumber;
+  int currentTestNumber = 1;
+  int testNumber;
+  int score = 0;
+  int selectedIndex;
+  bool finished = false;
+
   @override
   void initState() {
     super.initState();
@@ -25,49 +30,53 @@ class _QuestionsState extends State<Questions> {
       });
     });
   }
+
   @override
   Widget build(BuildContext context) {
-    ScreenUtil.init(context,width: 375, height: 812);
+    ScreenUtil.init(context, width: 375, height: 812);
     double height = MediaQuery.of(context).size.height;
     double width = MediaQuery.of(context).size.width;
-    return Scaffold(
+    return testNumber != null ? Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: Color(0xff151829),
         elevation: 0,
         title: Padding(
-          padding: EdgeInsets.only(top: ScreenUtil().setHeight(28), right: ScreenUtil().setWidth(5), left: ScreenUtil().setWidth(5)),
+          padding: EdgeInsets.only(
+              top: ScreenUtil().setHeight(28),
+              right: ScreenUtil().setWidth(5),
+              left: ScreenUtil().setWidth(5)),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               currentTestNumber == testNumber
                   ? Container(
-                height: 5,
-                width: ((width - 48) / testNumber) * currentTestNumber,
-                color: Color(0xff0DC28B),
-              )
+                      height: 5,
+                      width: ((width - 48) / testNumber) * currentTestNumber,
+                      color: Color(0xff0DC28B),
+                    )
                   : ClipPath(
-                clipper: ProgressOne(),
-                child: Container(
-                  height: 5,
-                  width: ((width - 48) / testNumber) * currentTestNumber,
-                  color: Color(0xff0DC28B),
-                ),
-              ),
+                      clipper: ProgressOne(),
+                      child: Container(
+                        height: 5,
+                        width: ((width - 48) / testNumber) * currentTestNumber,
+                        color: Color(0xff0DC28B),
+                      ),
+                    ),
               SizedBox(
                 width: ScreenUtil().setWidth(3),
               ),
               currentTestNumber == testNumber
                   ? Container()
                   : Expanded(
-                child: ClipPath(
-                  clipper: ProgressTwo(),
-                  child: Container(
-                    height: 5,
-                    color: Color(0xff888B94),
-                  ),
-                ),
-              ),
+                      child: ClipPath(
+                        clipper: ProgressTwo(),
+                        child: Container(
+                          height: 5,
+                          color: Color(0xff888B94),
+                        ),
+                      ),
+                    ),
             ],
           ),
         ),
@@ -76,7 +85,10 @@ class _QuestionsState extends State<Questions> {
         height: height,
         color: Color(0xff151829),
         child: Padding(
-          padding: EdgeInsets.only(top: ScreenUtil().setHeight(60), right: ScreenUtil().setWidth(25), left: ScreenUtil().setWidth(25)),
+          padding: EdgeInsets.only(
+              top: ScreenUtil().setHeight(60),
+              right: ScreenUtil().setWidth(25),
+              left: ScreenUtil().setWidth(25)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -84,14 +96,17 @@ class _QuestionsState extends State<Questions> {
                 children: <Widget>[
                   Text(
                     'Асуулт ' + currentTestNumber.toString(),
-                    style: TextStyle(color: Colors.white, fontSize: ScreenUtil().setSp(22)),
+                    style: TextStyle(
+                        color: Colors.white, fontSize: ScreenUtil().setSp(22)),
                   ),
                   SizedBox(
                     width: ScreenUtil().setWidth(3),
                   ),
                   Text(
                     '/' + testNumber.toString(),
-                    style: TextStyle(color: Color(0xff888B94), fontSize: ScreenUtil().setSp(16)),
+                    style: TextStyle(
+                        color: Color(0xff888B94),
+                        fontSize: ScreenUtil().setSp(16)),
                   ),
                 ],
               ),
@@ -109,11 +124,10 @@ class _QuestionsState extends State<Questions> {
                 height: ScreenUtil().setHeight(75),
               ),
               Column(
-                  children: questions[currentTestNumber - 1].options
-                      .map((e) => Option(
-                    option: e,
-                    index: questions[currentTestNumber - 1].options.indexOf(e),
-                  ))
+                  children: questions[currentTestNumber - 1]
+                      .options
+                      .map((e) => _Option(e,
+                          questions[currentTestNumber - 1].options.indexOf(e)))
                       .toList()),
               SizedBox(
                 height: ScreenUtil().setHeight(50),
@@ -125,48 +139,71 @@ class _QuestionsState extends State<Questions> {
                   height: ScreenUtil().setHeight(40),
                   child: FlatButton(
                       onPressed: () {
-                        if (currentTestNumber < testNumber) {
-                          setState(() {
-                            currentTestNumber++;
-                          });
+                        if (selectedIndex != null) {
+                          if (currentTestNumber < testNumber) {
+                            if (questions[currentTestNumber - 1].answer ==
+                                selectedIndex) {
+                              score++;
+                            }
+                            setState(() {
+                              selectedIndex = null;
+                              currentTestNumber++;
+                            });
+                          } else {
+                            if (!finished) {
+                              finished = true;
+                              if (questions[currentTestNumber - 1].answer ==
+                                  selectedIndex) {
+                                score++;
+                              }
+                              print("Оноо: " +
+                                  score.toString() +
+                                  "/" +
+                                  testNumber.toString());
+                            }
+                          }
                         }
                       },
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10.0)),
-                      color: Color(0xff888B94),
-                      child: Text(
-                        'Дараагийн',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: ScreenUtil().setSp(14),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      )),
+                      color: selectedIndex != null
+                          ? Color(0xff13B3FE)
+                          : Color(0xff888B94),
+                      child: currentTestNumber == testNumber
+                          ? Text(
+                              'Дуусгах',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: ScreenUtil().setSp(14),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : Text(
+                              'Дараагийн',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: ScreenUtil().setSp(14),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )),
                 ),
               ),
             ],
           ),
         ),
+      )
+    ) : Container(
+      alignment: Alignment.center,
+      height: height,
+      color: Color(0xff151829),
+      child: CircularProgressIndicator(
+        strokeWidth: 3,
+        backgroundColor: Colors.white,
       ),
     );
   }
-}
 
-class Option extends StatefulWidget {
-  final String option;
-  final int index;
-
-  const Option({@required this.option, @required this.index});
-
-  @override
-  _OptionState createState() => _OptionState();
-}
-
-class _OptionState extends State<Option> {
-  bool checked = false;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _Option(String option, int index) {
     return Column(
       children: <Widget>[
         ButtonTheme(
@@ -174,23 +211,26 @@ class _OptionState extends State<Option> {
           child: FlatButton(
             onPressed: () {
               setState(() {
-                checked = !checked;
-                print(widget.index);
+                selectedIndex = index;
               });
             },
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10.0),
-                side: BorderSide(color: Color(0xff0ca2ff), width: ScreenUtil().setWidth(2))),
+                side: BorderSide(
+                    color: Color(0xff0ca2ff), width: ScreenUtil().setWidth(2))),
             color: Color(0xff151829),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
                 Text(
-                  widget.option,
-                  style: TextStyle(color: Colors.white, fontSize: ScreenUtil().setSp(14),),
+                  option,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: ScreenUtil().setSp(14),
+                  ),
                 ),
                 Icon(
-                  checked
+                  selectedIndex == index
                       ? Icons.radio_button_checked
                       : Icons.radio_button_unchecked,
                   color: Color(0xff00d091),
